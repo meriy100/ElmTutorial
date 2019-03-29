@@ -12,10 +12,10 @@ type Model
     | Loading
     | Success String
 
-
 init : () -> (Model, Cmd Msg)
 init _ =
     (Loading, getRandomCatGif)
+
 type Msg
     = MorePlease
     | GotGif (Result Http.Error String)

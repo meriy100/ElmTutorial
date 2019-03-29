@@ -58,7 +58,7 @@ passwordMatchValidate model =
 passwordLengthValidate model =
     validate (\m -> String.length m.password < 8) "Passwords is not over 8 chars" model
 
-isComplexly : String ->Bool
+isComplexly : String -> Bool
 isComplexly str =
     not(Regex.contains (Maybe.withDefault Regex.never <| Regex.fromString "[0-9]") str &&
         Regex.contains (Maybe.withDefault Regex.never <| Regex.fromString "[A-Z]") str &&
