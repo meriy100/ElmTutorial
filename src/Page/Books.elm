@@ -105,6 +105,3 @@ main =
         , subscriptions = subscriptions
         , view = view
         }
-
-map2 =
-    List.map main 1

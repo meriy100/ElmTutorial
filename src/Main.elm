@@ -1,80 +1,97 @@
-module Navigation exposing (Model, Msg(..), init, main, subscriptions, update, view, viewLink)
+module Main exposing (..)
 
 import Browser
-import Browser.Navigation as Nav
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Url
+import Html.Events exposing (..)
+import Http
+import Json.Decode as Decode exposing (..)
+import Json.Encode as Encode exposing (Value)
 
-import Page.Books exposing (..)
-
-
-type alias Model =
-    { key : Nav.Key
-    , url : Url.Url
+type alias Entry =
+    { track : String
+    , userName : String
+    , url : String
+    , description : String
+    , problemId: Int
+    , timestamp : Int
     }
 
+type Model
+    = Failure String
+    | Loading
+    | Success (List Entry)
+
+
 type Msg
-    = LinkClicked Browser.UrlRequest
-    | UrlChanged Url.Url
+    = GotEntries (Result Http.Error (List Entry))
 
 
-init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init flags url key =
-    ( Model key url, Cmd.none )
+init : () -> (Model, Cmd Msg)
+init _ =
+    (Loading, getEntries)
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
-        LinkClicked urlRequest ->
-            case urlRequest of
-                Browser.Internal url ->
-                    ( model, Nav.pushUrl model.key (Url.toString url) )
+        GotEntries result ->
+            case result of
+                Ok entries ->
+                    (Success entries, Cmd.none)
+                Err error ->
+                    case error of
+                        Http.BadBody message ->
+                            (Failure message, Cmd.none)
+                        _  ->
+                            (Failure "error", Cmd.none)
 
-                Browser.External href ->
-                    ( model, Nav.load href )
 
-        UrlChanged url ->
-            ( { model | url = url }
-            , Cmd.none
-            )
+getEntries: Cmd Msg
+getEntries =
+    Http.request
+        { method = "GET"
+        , headers = [Http.header "x-api-key" "bZtakJFNc58t22fWKAfmb70ogJLOFp7F3T6Qu68D"]
+        ,  url = "https://upwacz0asa.execute-api.ap-northeast-1.amazonaws.com/dev/entries"
+        , body = Http.emptyBody
+        , expect = Http.expectJson GotEntries entriesDecoder
+        , timeout = Nothing
+        , tracker = Nothing
+        }
 
+entriesDecoder: Decoder (List Entry)
+entriesDecoder =
+    Decode.field "Items" (Decode.list entryDecoder)
+
+entryDecoder: Decoder Entry
+entryDecoder =
+    Decode.map6 Entry (Decode.field "track" Decode.string) (Decode.field "user_name" Decode.string) (Decode.field "url" Decode.string) (Decode.field "description" Decode.string) (Decode.field "problem_id" Decode.int) (Decode.field "timestamp" Decode.int)
+
+view : Model -> Html Msg
+view model =
+    div []
+    [ h1 [] [text "第一回チキチキおしゃれコード選手権"]
+    , viewEntries model
+    ]
+
+viewEntries model =
+    case model of
+        Failure error ->
+            div []
+            [ text error ]
+        Loading ->
+            text "Loading"
+        Success entries ->
+            div []
+            ( entries |> List.map (\e -> span [] [text e.userName]) )
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.none
 
-
-view : Model -> Browser.Document Msg
-view model =
-    { title = "URL Interceptor"
-    , body =
-        [ text "The current URL is: "
-        , b [] [ text (Url.toString model.url) ]
-        , ul []
-            [ viewLink "/home"
-            , viewLink "/profile"
-            , viewLink "/reviews/the-century-of-the-self"
-            , viewLink "/reviews/public-opinion"
-            , viewLink "/reviews/shah-of-shahs"
-             , viewBooks "books"
-            ]
-        ]
-    }
-
-
-viewLink : String -> Html msg
-viewLink path =
-    li [] [ a [ href path ] [ text path ] ]
-
-main : Program () Model Msg
 main =
-    Browser.application
+    Browser.element
         { init = init
-        , view = view
         , update = update
         , subscriptions = subscriptions
-        , onUrlChange = UrlChanged
-        , onUrlRequest = LinkClicked
+        , view = view
         }
-
