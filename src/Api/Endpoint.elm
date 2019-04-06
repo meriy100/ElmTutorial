@@ -3,6 +3,16 @@ module Api.Endpoint exposing (..)
 import Http
 import Url.Builder exposing (QueryParameter)
 
+type Endpoint
+    = Endpoint String
+request
+  : { method : String
+    , url : Endpoint
+    , body : Http.Body
+    , expect : Http.Expect msg
+    }
+     -> Cmd msg
+
 request config =
     Http.request
         { body = config.body
@@ -13,9 +23,6 @@ request config =
         , timeout = Nothing
         , tracker = Nothing
         }
-
-type Endpoint
-    = Endpoint String
 
 unwrap : Endpoint -> String
 unwrap (Endpoint str) =
