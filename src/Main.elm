@@ -5,27 +5,18 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Http
-import Json.Decode as Decode exposing (..)
-import Json.Encode as Encode exposing (Value)
 
-type alias Entry =
-    { track : String
-    , userName : String
-    , url : String
-    , description : String
-    , problemId: Int
-    , timestamp : Int
-    }
+import Entry as Entry exposing (Entry)
 
 type Model
     = Failure String
     | Loading
     | Success (List Entry)
 
-
 type Msg
     = GotEntries (Result Http.Error (List Entry))
-
+    | PostedEntry (Result Http.Error String)
+    | PostEntry
 
 init : () -> (Model, Cmd Msg)
 init _ =
@@ -44,7 +35,18 @@ update msg model =
                             (Failure message, Cmd.none)
                         _  ->
                             (Failure "error", Cmd.none)
-
+        PostedEntry result ->
+            case result of
+                Ok _ ->
+                    (model, getEntries)
+                Err error ->
+                    case error of
+                        Http.BadBody message ->
+                            (Failure message, Cmd.none)
+                        _  ->
+                            (Failure "error", Cmd.none)
+        PostEntry ->
+            (model, postEntry (Entry "-" "-" "-" "-" 1 1))
 
 getEntries: Cmd Msg
 getEntries =
@@ -53,24 +55,34 @@ getEntries =
         , headers = [Http.header "x-api-key" "bZtakJFNc58t22fWKAfmb70ogJLOFp7F3T6Qu68D"]
         ,  url = "https://upwacz0asa.execute-api.ap-northeast-1.amazonaws.com/dev/entries"
         , body = Http.emptyBody
-        , expect = Http.expectJson GotEntries entriesDecoder
+        , expect = Http.expectJson GotEntries Entry.listDecoder
         , timeout = Nothing
         , tracker = Nothing
         }
 
-entriesDecoder: Decoder (List Entry)
-entriesDecoder =
-    Decode.field "Items" (Decode.list entryDecoder)
-
-entryDecoder: Decoder Entry
-entryDecoder =
-    Decode.map6 Entry (Decode.field "track" Decode.string) (Decode.field "user_name" Decode.string) (Decode.field "url" Decode.string) (Decode.field "description" Decode.string) (Decode.field "problem_id" Decode.int) (Decode.field "timestamp" Decode.int)
+postEntry : Entry -> Cmd Msg
+postEntry entry =
+    let
+        bod =
+            Entry.encode entry
+                |> Http.jsonBody
+    in
+    Http.request
+        { method = "POST"
+        , headers = [Http.header "x-api-key" "bZtakJFNc58t22fWKAfmb70ogJLOFp7F3T6Qu68D"]
+        ,  url = "https://upwacz0asa.execute-api.ap-northeast-1.amazonaws.com/dev/entries"
+        , body = bod
+        , expect = Http.expectString PostedEntry
+        , timeout = Nothing
+        , tracker = Nothing
+        }
 
 view : Model -> Html Msg
 view model =
     div []
     [ h1 [] [text "第一回チキチキおしゃれコード選手権"]
     , viewEntries model
+    , button [onClick PostEntry] [text "post"]
     ]
 
 viewEntries model =
@@ -82,7 +94,7 @@ viewEntries model =
             text "Loading"
         Success entries ->
             div []
-            ( entries |> List.map (\e -> span [] [text e.userName]) )
+            ( entries |> List.sortBy (\e -> e.timestamp)  |> List.map (\e -> span [] [text e.userName]) )
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
