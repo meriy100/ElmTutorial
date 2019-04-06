@@ -14,7 +14,7 @@ type alias Entry =
 
 init : Entry
 init =
-    Entry "a" "a" "a" "a" 1 1
+    Entry "" "" "" "" 1 1
 
 listDecoder : Decoder (List Entry)
 listDecoder =
