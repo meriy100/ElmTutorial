@@ -1,8 +1,7 @@
-module Entry exposing (Entry, decoder, encode, listDecoder)
+module Entry exposing (Entry, init, decoder, encode, listDecoder)
 
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
-
 
 type alias Entry =
     { track : String
@@ -13,6 +12,9 @@ type alias Entry =
     , timestamp : Int
     }
 
+init : Entry
+init =
+    Entry "a" "a" "a" "a" 1 1
 
 listDecoder : Decoder (List Entry)
 listDecoder =
