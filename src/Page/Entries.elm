@@ -1,12 +1,7 @@
 module Page.Entries exposing (..)
 
 import Api.Endpoint as Endpoint
-import Bootstrap.Button as Button
 import Bootstrap.CDN as CDN
-import Bootstrap.Form as Form
-import Bootstrap.Form.Input as Input
-import Bootstrap.Form.Select as Select
-import Bootstrap.Form.Textarea as Textarea
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.ListGroup as ListGroup
@@ -23,10 +18,9 @@ type Status a
     | Loading a
     | Loaded a
 
-type alias EntryItem =
-    { isShowDescription : Bool
-    , entry : Entry
-    }
+type EntryItem
+    = Show Entry
+    | Hide Entry
 
 type alias Model =
     { entryItems : Status (List EntryItem)
@@ -51,19 +45,27 @@ statusMap f s =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model (Loading []) EntryForm.initModel, getEntries )
+    ( Model (Loading []) EntryForm.initModel, fetchEntries )
 
-toggleIsShowDescription : EntryItem -> EntryItem
-toggleIsShowDescription entryItem =
-    if entryItem.isShowDescription then
-        { entryItem | isShowDescription = False }
-    else
-        { entryItem | isShowDescription = True }
+toggleVisible : EntryItem -> EntryItem
+toggleVisible entry =
+    case entry of
+        Show e ->
+            Hide e
+        Hide e ->
+            Show e
+getEntry : EntryItem -> Entry
+getEntry entryItem =
+    case entryItem of
+        Show e ->
+            e
+        Hide e ->
+            e
 
 equalOr : Entry -> EntryItem -> EntryItem
 equalOr targetEntry entryItem =
-    if entryItem.entry.track == targetEntry.track then
-        toggleIsShowDescription entryItem
+    if  .track (getEntry entryItem) == targetEntry.track then
+        toggleVisible entryItem
      else
          entryItem
 
@@ -73,7 +75,7 @@ update msg model =
         GotEntries result ->
             case result of
                 Ok entries ->
-                    ( { model | entryItems = entries |> List.map (EntryItem False) |> Loaded }, Cmd.none )
+                    ( { model | entryItems = entries |> List.map Hide |> Loaded }, Cmd.none )
 
                 Err error ->
                     case error of
@@ -91,7 +93,7 @@ update msg model =
                 ( newEntry, _ ) =
                     EntryForm.update (EntryForm.PostedEntry result) model.newEntry
             in
-            ( { model | newEntry = newEntry }, getEntries )
+            ( { model | newEntry = newEntry }, fetchEntries )
 
         EntryFormMsg entryFormMsg ->
             let
@@ -101,8 +103,8 @@ update msg model =
             ( { model | newEntry = newEntry }, Cmd.map EntryFormMsg cmd )
 
 
-getEntries : Cmd Msg
-getEntries =
+fetchEntries : Cmd Msg
+fetchEntries =
     Endpoint.request
         { method = "GET"
         , url = Endpoint.entries
@@ -123,18 +125,18 @@ view model =
         ]
 
 viewEntryDescription entryItem =
-    case entryItem.isShowDescription of
-        False ->
+    case entryItem of
+        Hide _ ->
             []
-        True ->
-            [ Grid.col [ Col.md12 ] [ text entryItem.entry.description ] ]
+        Show entry ->
+            [ Grid.col [ Col.md12 ] [ text entry.description ] ]
 
 viewEntryItem entryItem =
-    ListGroup.li [ ListGroup.attrs [onClick (ClickEntryItem entryItem.entry),  style "cursor" "pointer" ] ]
+    ListGroup.li [ ListGroup.attrs [onClick ( entryItem |> getEntry |> ClickEntryItem),  style "cursor" "pointer" ] ]
         [ Grid.row []
-            [ Grid.col [ Col.md4 ] [ text entryItem.entry.userName ]
-            , Grid.col [ Col.md4 ] [ entryItem.entry.problem |> Entry.problemToString |> text ]
-            , Grid.col [ Col.md4 ] [ a [ href entryItem.entry.url ] [ text entryItem.entry.url ] ]
+            [ Grid.col [ Col.md4 ] [ entryItem |> getEntry |> .userName |> text ]
+            , Grid.col [ Col.md4 ] [ entryItem |> getEntry |> .problem |> Entry.problemToString |> text ]
+            , Grid.col [ Col.md4 ] [ a [  entryItem |> getEntry |> .url |> href ] [ entryItem |> getEntry |> .url |> text ] ]
             ]
         , Grid.row [] (viewEntryDescription entryItem)
         ]
@@ -152,7 +154,7 @@ viewEntryItems model =
             Grid.row []
                 [ Grid.col [ Col.md12 ]
                     [ entryItems
-                        |> List.sortBy (\e -> e.entry.timestamp)
+                        |> List.sortBy (\e -> e |> getEntry |> .timestamp)
                         |> List.map viewEntryItem
                         |> ListGroup.ul
                     ]
