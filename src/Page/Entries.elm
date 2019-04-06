@@ -6,7 +6,10 @@ import Bootstrap.CDN as CDN
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
 import Bootstrap.Form.Textarea as Textarea
+import Bootstrap.Form.Select as Select
 import Bootstrap.Grid as Grid
+import Bootstrap.Grid.Col as Col
+import Bootstrap.ListGroup as ListGroup
 import Entry as Entry exposing (Entry)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -23,21 +26,24 @@ type Status a
 type alias Model =
     { entries : Status (List Entry)
     , newEntry : Status Entry
+    , showEntry : Maybe Entry
     }
 
 
 type Msg
     = GotEntries (Result Http.Error (List Entry))
     | PostedEntry (Result Http.Error String)
+    | SelectEntry Entry
     | InputUserName String
     | InputUrl String
     | InputDescription String
+    | ChangeProblem String
     | SubmitEntry
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model (Loading []) (Loaded Entry.init), getEntries )
+    ( Model (Loading []) (Loaded Entry.init) Nothing, getEntries )
 
 
 updateNewEntry : Msg -> Status Entry -> Entry
@@ -64,6 +70,8 @@ updateNewEntry msg model =
         InputDescription description ->
             { newEntry | description = description }
 
+        ChangeProblem problemId ->
+            { newEntry | problem = problemId |> String.toInt |> Maybe.withDefault 1 |> Entry.toProblem }
         _ ->
             newEntry
 
@@ -95,7 +103,8 @@ update msg model =
                             ( { model | newEntry = Failure message }, Cmd.none )
                         _ ->
                             ( { model | newEntry = Failure "Error" }, Cmd.none )
-
+        SelectEntry entry ->
+            ( { model | showEntry = Just entry }, Cmd.none )
         InputUserName _ ->
             ( { model | newEntry = Loaded (updateNewEntry msg model.newEntry) }, Cmd.none )
 
@@ -103,6 +112,9 @@ update msg model =
             ( { model | newEntry = Loaded (updateNewEntry msg model.newEntry) }, Cmd.none )
 
         InputDescription _ ->
+            ( { model | newEntry = Loaded (updateNewEntry msg model.newEntry) }, Cmd.none )
+
+        ChangeProblem _ ->
             ( { model | newEntry = Loaded (updateNewEntry msg model.newEntry) }, Cmd.none )
 
         SubmitEntry ->
@@ -170,6 +182,16 @@ viewEntryForm model =
                     , Input.text [ Input.id "user_name", Input.value entry.userName, Input.onInput InputUserName ]
                     ]
                 , Form.group []
+                    [ Form.label [ for "problem" ] [ text "課題名" ]
+                    , Select.select
+                        [ Select.id "problem"
+                        , Select.onChange ChangeProblem
+                        ]
+                        [ Select.item [ value "1" ] [ text "FizzBuzz" ]
+                        , Select.item [ value "2" ] [ text "フィボナッチ数" ]
+                        ]
+                    ]
+                , Form.group []
                     [ Form.label [ for "url" ] [ text "Git URL" ]
                     , Input.text [ Input.id "url", Input.value entry.url, Input.onInput InputUrl ]
                     ]
@@ -184,6 +206,14 @@ viewEntryForm model =
                 , Button.button [ Button.primary, Button.onClick SubmitEntry ] [ text "投稿" ]
                 ]
 
+viewEntryItem entry =
+    ListGroup.li []
+        [ Grid.row []
+            [ Grid.col [ Col.md4 ] [ text entry.userName ]
+            , Grid.col [ Col.md4 ] [ entry.problem |> Entry.problemToString |> text ]
+            , Grid.col [ Col.md4 ] [ a [ href entry.url ] [ text entry.url ] ]
+            ]
+        ]
 
 viewEntries model =
     case model of
@@ -195,9 +225,14 @@ viewEntries model =
             text "Loading"
 
         Loaded entries ->
-            div []
-                (entries |> List.sortBy (\e -> e.timestamp) |> List.map (\e -> span [] [ text e.userName ]))
-
+            Grid.row []
+                [ Grid.col [ Col.md12 ]
+                    [ entries
+                      |> List.sortBy (\e -> e.timestamp)
+                      |> List.map viewEntryItem
+                      |> ListGroup.ul
+                    ]
+                ]
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
