@@ -23,24 +23,49 @@ type Status a
     | Loading a
     | Loaded a
 
+type alias EntryItem =
+    { isShowDescription : Bool
+    , entry : Entry
+    }
 
 type alias Model =
-    { entries : Status (List Entry)
+    { entryItems : Status (List EntryItem)
     , newEntry : EntryForm.Model
-    , showEntry : Maybe Entry
     }
 
 
 type Msg
     = GotEntries (Result Http.Error (List Entry))
-    | SelectEntry Entry
+    | ClickEntryItem Entry
     | EntryFormMsg EntryForm.Msg
 
+statusMap : (a -> b) -> Status a -> Status b
+statusMap f s =
+    case s of
+        Failure m ->
+            Failure m
+        Loading a ->
+            a |> f |> Loading
+        Loaded a ->
+            a |> f |> Loaded
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model (Loading []) EntryForm.initModel Nothing, getEntries )
+    ( Model (Loading []) EntryForm.initModel, getEntries )
 
+toggleIsShowDescription : EntryItem -> EntryItem
+toggleIsShowDescription entryItem =
+    if entryItem.isShowDescription then
+        { entryItem | isShowDescription = False }
+    else
+        { entryItem | isShowDescription = True }
+
+equalOr : Entry -> EntryItem -> EntryItem
+equalOr targetEntry entryItem =
+    if entryItem.entry.track == targetEntry.track then
+        toggleIsShowDescription entryItem
+     else
+         entryItem
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -48,18 +73,18 @@ update msg model =
         GotEntries result ->
             case result of
                 Ok entries ->
-                    ( { model | entries = Loaded entries }, Cmd.none )
+                    ( { model | entryItems = entries |> List.map (EntryItem False) |> Loaded }, Cmd.none )
 
                 Err error ->
                     case error of
                         Http.BadBody message ->
-                            ( { model | entries = Failure message }, Cmd.none )
+                            ( { model | entryItems = Failure message }, Cmd.none )
 
                         _ ->
-                            ( { model | entries = Failure "Error" }, Cmd.none )
+                            ( { model | entryItems = Failure "Error" }, Cmd.none )
 
-        SelectEntry entry ->
-            ( { model | showEntry = Just entry }, Cmd.none )
+        ClickEntryItem entry ->
+            ( { model | entryItems = model.entryItems |> statusMap ( List.map (equalOr entry) ) }, Cmd.none )
 
         EntryFormMsg (EntryForm.PostedEntry result) ->
             let
@@ -93,20 +118,28 @@ view model =
         , div []
             [ h1 [] [ text "第一回チキチキおしゃれコード選手権" ]
             , EntryForm.viewEntryForm model.newEntry |> Html.map EntryFormMsg
-            , viewEntries model.entries
+            , viewEntryItems model.entryItems
             ]
         ]
 
-viewEntryItem entry =
-    ListGroup.li []
+viewEntryDescription entryItem =
+    case entryItem.isShowDescription of
+        False ->
+            []
+        True ->
+            [ Grid.col [ Col.md12 ] [ text entryItem.entry.description ] ]
+
+viewEntryItem entryItem =
+    ListGroup.li [ ListGroup.attrs [onClick (ClickEntryItem entryItem.entry),  style "cursor" "pointer" ] ]
         [ Grid.row []
-            [ Grid.col [ Col.md4 ] [ text entry.userName ]
-            , Grid.col [ Col.md4 ] [ entry.problem |> Entry.problemToString |> text ]
-            , Grid.col [ Col.md4 ] [ a [ href entry.url ] [ text entry.url ] ]
+            [ Grid.col [ Col.md4 ] [ text entryItem.entry.userName ]
+            , Grid.col [ Col.md4 ] [ entryItem.entry.problem |> Entry.problemToString |> text ]
+            , Grid.col [ Col.md4 ] [ a [ href entryItem.entry.url ] [ text entryItem.entry.url ] ]
             ]
+        , Grid.row [] (viewEntryDescription entryItem)
         ]
 
-viewEntries model =
+viewEntryItems model =
     case model of
         Failure error ->
             div []
@@ -115,11 +148,11 @@ viewEntries model =
         Loading _ ->
             text "Loading"
 
-        Loaded entries ->
+        Loaded entryItems ->
             Grid.row []
                 [ Grid.col [ Col.md12 ]
-                    [ entries
-                        |> List.sortBy (\e -> e.timestamp)
+                    [ entryItems
+                        |> List.sortBy (\e -> e.entry.timestamp)
                         |> List.map viewEntryItem
                         |> ListGroup.ul
                     ]
