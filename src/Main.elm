@@ -7,6 +7,7 @@ import Html.Events exposing (..)
 import Http
 
 import Entry as Entry exposing (Entry)
+import Api.Endpoint as Endpoint
 
 type Model
     = Failure String
@@ -22,6 +23,13 @@ init : () -> (Model, Cmd Msg)
 init _ =
     (Loading, getEntries)
 
+requestError error =
+                    case error of
+                        Http.BadBody message ->
+                            (Failure message, Cmd.none)
+                        _  ->
+                            (Failure "error", Cmd.none)
+
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
@@ -30,34 +38,23 @@ update msg model =
                 Ok entries ->
                     (Success entries, Cmd.none)
                 Err error ->
-                    case error of
-                        Http.BadBody message ->
-                            (Failure message, Cmd.none)
-                        _  ->
-                            (Failure "error", Cmd.none)
+                    requestError error
         PostedEntry result ->
             case result of
                 Ok _ ->
                     (model, getEntries)
                 Err error ->
-                    case error of
-                        Http.BadBody message ->
-                            (Failure message, Cmd.none)
-                        _  ->
-                            (Failure "error", Cmd.none)
+                    requestError error
         PostEntry ->
             (model, postEntry (Entry "-" "-" "-" "-" 1 1))
 
 getEntries: Cmd Msg
 getEntries =
-    Http.request
+    Endpoint.request
         { method = "GET"
-        , headers = [Http.header "x-api-key" "bZtakJFNc58t22fWKAfmb70ogJLOFp7F3T6Qu68D"]
-        ,  url = "https://upwacz0asa.execute-api.ap-northeast-1.amazonaws.com/dev/entries"
+        , url = Endpoint.entries
         , body = Http.emptyBody
         , expect = Http.expectJson GotEntries Entry.listDecoder
-        , timeout = Nothing
-        , tracker = Nothing
         }
 
 postEntry : Entry -> Cmd Msg
@@ -67,14 +64,11 @@ postEntry entry =
             Entry.encode entry
                 |> Http.jsonBody
     in
-    Http.request
+    Endpoint.request
         { method = "POST"
-        , headers = [Http.header "x-api-key" "bZtakJFNc58t22fWKAfmb70ogJLOFp7F3T6Qu68D"]
-        ,  url = "https://upwacz0asa.execute-api.ap-northeast-1.amazonaws.com/dev/entries"
+        , url = Endpoint.entries
         , body = bod
         , expect = Http.expectString PostedEntry
-        , timeout = Nothing
-        , tracker = Nothing
         }
 
 view : Model -> Html Msg
