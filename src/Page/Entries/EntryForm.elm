@@ -1,4 +1,4 @@
-module Page.Entries.EntryForm exposing (..)
+module Page.Entries.EntryForm exposing (Field(..), Model, Msg(..), Status(..), ValidateError, ValidateFilter, dangerWith, filterDescription, filterUrl, filterUserName, getEntry, initModel, invalidFeedback, isLoading, modelValidate, modelValidator, postEntry, update, view)
 
 import Api.Endpoint as Endpoint
 import Bootstrap.Button as Button
@@ -22,10 +22,6 @@ type Status a
 type alias Model =
     Status Entry
 
-type Field
-    = UserName
-    | Url
-    | Description
 
 type Msg
     = PostedEntry (Result Http.Error String)
@@ -35,13 +31,45 @@ type Msg
     | ChangeProblem String
     | SubmitEntry
 
+
+type Field
+    = UserName
+    | Url
+    | Description
+
+
+type alias ValidateError =
+    ( Field, String )
+
+
+type alias ValidateFilter =
+    ValidateError -> Bool
+
+replace : Entry -> Model -> Model
+replace e model =
+    case model of
+        Failure m _ ->
+            Failure m e
+
+        Loaded _ ->
+            Loaded e
+
+        Loading _ ->
+            Loaded e
+
+getValidateMessage : ValidateError -> String
+getValidateMessage (_, m) =
+    m
+
 isLoading : Model -> Bool
 isLoading model =
     case model of
         Loading _ ->
             True
+
         _ ->
             False
+
 
 getEntry : Model -> Entry
 getEntry model =
@@ -55,55 +83,84 @@ getEntry model =
         Failure _ a ->
             a
 
-modelValidator : Validator (Field, String) Model
+
+modelValidator : Validator ValidateError Model
 modelValidator =
     Validate.all
-        [ ifBlank (.userName << getEntry) (UserName, "Please enter a name.")
-        , ifBlank (.url << getEntry) (Url, "Please enter a url.")
-        , ifBlank (.description << getEntry) (Description, "Please enter a description.")
+        [ ifBlank (.userName << getEntry) ( UserName, "Please enter a name." )
+        , ifBlank (.url << getEntry) ( Url, "Please enter a url." )
+        , ifBlank (.description << getEntry) ( Description, "Please enter a description." )
         ]
 
-userNameValidator : Validator String Model
-userNameValidator =
-    Validate.all
-        [ ifBlank (.userName << getEntry) "Please enter a name."
-        ]
 
-urlValidator : Validator String Model
-urlValidator =
-    Validate.all
-        [ ifBlank (.url << getEntry) "Please enter a url."
-        ]
+modelValidate : ValidateFilter -> Model -> Result (List ValidateError) (Valid Model)
+modelValidate f model =
+    validate modelValidator model |> Result.mapError (\xs -> List.filter f xs)
 
-descriptionValidator : Validator String Model
-descriptionValidator =
-    Validate.all
-        [ ifBlank (.description << getEntry) "Please enter a description."
-        ]
 
-dangerWith : (Validator String Model) -> Model -> a -> List a -> List a
-dangerWith validator model danger xs =
-    case validate validator model of
+filterUserName : ValidateFilter
+filterUserName ( f, _ ) =
+    case f of
+        UserName ->
+            True
+
+        _ ->
+            False
+
+
+filterUrl : ValidateFilter
+filterUrl ( f, _ ) =
+    case f of
+        Url ->
+            True
+
+        _ ->
+            False
+
+
+filterDescription : ValidateFilter
+filterDescription ( f, _ ) =
+    case f of
+        Description ->
+            True
+
+        _ ->
+            False
+
+
+dangerWith : (Model -> Result (List ValidateError) (Valid Model)) -> Model -> a -> List a -> List a
+dangerWith v model danger xs =
+    case v model of
         Ok _ ->
             xs
-        Err _ ->
-            case model of
-                Failure _ _ ->
-                    (danger :: xs)
-                _ ->
-                    xs
 
-invalidFeedback : (Validator String Model) -> Model -> Html Msg
-invalidFeedback validator model =
-    case validate validator model of
+        Err ys ->
+            case ys of
+                [] ->
+                    xs
+                _ ->
+                    case model of
+                        Failure _ _ ->
+                            danger :: xs
+
+                        _ ->
+                            xs
+
+
+invalidFeedback : (Model -> Result (List ValidateError) (Valid Model)) -> Model -> Html Msg
+invalidFeedback v model =
+    case v model of
         Ok _ ->
             text ""
+
         Err messages ->
             case model of
                 Failure _ _ ->
-                    Form.invalidFeedback [] [ text (messages |> List.head |> Maybe.withDefault "")]
+                    Form.invalidFeedback [] [ text (messages |> List.head |> Maybe.withDefault (UserName, "") |> getValidateMessage) ]
+
                 _ ->
                     text ""
+
 
 initModel : Model
 initModel =
@@ -146,16 +203,16 @@ update msg model =
                             ( Failure "Error" newEntry, Cmd.none )
 
         InputUserName userName ->
-            ( Loaded { newEntry | userName = userName }, Cmd.none )
+            ( replace { newEntry | userName = userName } model, Cmd.none )
 
         InputUrl url ->
-            ( Loaded { newEntry | url = url }, Cmd.none )
+            ( replace { newEntry | url = url } model, Cmd.none )
 
         InputDescription description ->
-            ( Loaded { newEntry | description = description }, Cmd.none )
+            ( replace { newEntry | description = description } model, Cmd.none )
 
         ChangeProblem problemId ->
-            ( Loaded { newEntry | problem = problemId |> String.toInt |> Maybe.withDefault 1 |> Entry.toProblem }, Cmd.none )
+            ( replace { newEntry | problem = problemId |> String.toInt |> Maybe.withDefault 1 |> Entry.toProblem } model, Cmd.none )
 
         SubmitEntry ->
             case model of
@@ -163,23 +220,33 @@ update msg model =
                     ( model, Cmd.none )
 
                 Loaded a ->
-                    ( Loading a, postEntry a )
+                    case validate modelValidator model of
+                        Ok _ ->
+                            ( Loading a, postEntry a )
+                        Err _ ->
+                            ( Failure "invalid" a, Cmd.none )
 
                 Failure _ a ->
-                    ( Loading a, postEntry a )
+                    case validate modelValidator model of
+                        Ok _ ->
+                            ( Loading a, postEntry a )
+                        Err _ ->
+                            ( model, Cmd.none )
+
 
 view : Model -> Html Msg
 view model =
     let
-        entry = getEntry model
+        entry =
+            getEntry model
     in
     Form.form []
         [ Form.group []
             [ Form.label [ for "user_name" ] [ text "投稿者名" ]
             , [ Input.id "user_name", Input.value entry.userName, Input.onInput InputUserName ]
-            |> dangerWith userNameValidator model Input.danger
-            |> Input.text
-            , invalidFeedback userNameValidator model
+                |> dangerWith (modelValidate filterUserName) model Input.danger
+                |> Input.text
+            , invalidFeedback (modelValidate filterUserName) model
             ]
         , Form.group []
             [ Form.label [ for "problem" ] [ text "課題名" ]
@@ -194,16 +261,16 @@ view model =
         , Form.group []
             [ Form.label [ for "url" ] [ text "Git URL" ]
             , [ Input.id "url", Input.value entry.url, Input.onInput InputUrl ]
-            |> dangerWith urlValidator model Input.danger
-            |> Input.text
-            , invalidFeedback userNameValidator model
+                |> dangerWith (modelValidate filterUrl) model Input.danger
+                |> Input.text
+            , invalidFeedback (modelValidate filterUrl) model
             ]
         , Form.group []
             [ Form.label [ for "description" ] [ text "簡単な解説" ]
-            , [ Textarea.id "description" , Textarea.value entry.description , Textarea.onInput InputDescription ]
-            |> dangerWith descriptionValidator model Textarea.danger
-            |> Textarea.textarea
-            , invalidFeedback descriptionValidator model
+            , [ Textarea.id "description", Textarea.value entry.description, Textarea.onInput InputDescription ]
+                |> dangerWith (modelValidate filterDescription) model Textarea.danger
+                |> Textarea.textarea
+            , invalidFeedback (modelValidate filterDescription) model
             ]
         , Button.button [ Button.primary, Button.onClick SubmitEntry, Button.disabled (isLoading model) ] [ text "投稿" ]
         ]
