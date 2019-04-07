@@ -11,6 +11,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Http
 import Page.Entries.EntryForm as EntryForm
+import Regex
 
 
 type Status a
@@ -126,6 +127,17 @@ fetchEntries =
         , expect = Http.expectJson GotEntries Entry.listDecoder
         }
 
+splitNl : String -> List String
+splitNl str =
+    Regex.split (Maybe.withDefault Regex.never <| Regex.fromString "\n") str
+
+nl2br : List String -> List (Html Msg)
+nl2br strings =
+    case strings of
+        (s::ss) ->
+           (text s :: (br [] [] :: nl2br ss))
+        [] ->
+            []
 
 view : Model -> Html Msg
 view model =
@@ -139,22 +151,24 @@ view model =
         ]
 
 
-viewEntryDescription : EntryItem -> List (Grid.Column msg)
+viewEntryDescription : EntryItem -> List (Grid.Column Msg)
 viewEntryDescription entryItem =
     case entryItem of
         Hide _ ->
             []
 
         Show entry ->
-            [ Grid.col [ Col.md12 ] [ text entry.description ] ]
+            [ Grid.col [ Col.md12 ] (entry.description |> splitNl |> nl2br) ]
 
 
 viewEntryItem : EntryItem -> ListGroup.Item Msg
 viewEntryItem entryItem =
     ListGroup.li [ ListGroup.attrs [ onClick (entryItem |> getEntry |> ClickEntryItem), style "cursor" "pointer" ] ]
         [ Grid.row []
-            [ Grid.col [ Col.md4 ] [ entryItem |> getEntry |> .userName |> text ]
-            , Grid.col [ Col.md4 ] [ entryItem |> getEntry |> .problem |> Entry.problemToString |> text ]
+            [ Grid.col [ Col.md4 ]
+                [ h5 [] [ entryItem |> getEntry |> .userName |> text ] ]
+            , Grid.col [ Col.md4 ]
+                [ h6 [] [ entryItem |> getEntry |> .problem |> Entry.problemToString |> text ] ]
             ]
         , Grid.row [] (viewEntryDescription entryItem)
         ]
