@@ -155,7 +155,6 @@ viewEntryItem entryItem =
         [ Grid.row []
             [ Grid.col [ Col.md4 ] [ entryItem |> getEntry |> .userName |> text ]
             , Grid.col [ Col.md4 ] [ entryItem |> getEntry |> .problem |> Entry.problemToString |> text ]
-            , Grid.col [ Col.md4 ] [ a [ entryItem |> getEntry |> .url |> href ] [ entryItem |> getEntry |> .url |> text ] ]
             ]
         , Grid.row [] (viewEntryDescription entryItem)
         ]
