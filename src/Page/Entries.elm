@@ -1,4 +1,4 @@
-module Page.Entries exposing (..)
+module Page.Entries exposing (EntryItem(..), Model, Msg(..), Status(..), equalOr, fetchEntries, getEntry, init, statusMap, subscriptions, toggleVisible, update, view, viewEntryDescription, viewEntryItem, viewEntryItems)
 
 import Api.Endpoint as Endpoint
 import Bootstrap.CDN as CDN
@@ -18,9 +18,11 @@ type Status a
     | Loading a
     | Loaded a
 
+
 type EntryItem
     = Show Entry
     | Hide Entry
+
 
 type alias Model =
     { entryItems : Status (List EntryItem)
@@ -33,41 +35,53 @@ type Msg
     | ClickEntryItem Entry
     | EntryFormMsg EntryForm.Msg
 
+
 statusMap : (a -> b) -> Status a -> Status b
 statusMap f s =
     case s of
         Failure m ->
             Failure m
+
         Loading a ->
             a |> f |> Loading
+
         Loaded a ->
             a |> f |> Loaded
+
 
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( Model (Loading []) EntryForm.initModel, fetchEntries )
+
 
 toggleVisible : EntryItem -> EntryItem
 toggleVisible entry =
     case entry of
         Show e ->
             Hide e
+
         Hide e ->
             Show e
+
+
 getEntry : EntryItem -> Entry
 getEntry entryItem =
     case entryItem of
         Show e ->
             e
+
         Hide e ->
             e
 
+
 equalOr : Entry -> EntryItem -> EntryItem
 equalOr targetEntry entryItem =
-    if  .track (getEntry entryItem) == targetEntry.track then
+    if .track (getEntry entryItem) == targetEntry.track then
         toggleVisible entryItem
-     else
-         entryItem
+
+    else
+        entryItem
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -86,7 +100,7 @@ update msg model =
                             ( { model | entryItems = Failure "Error" }, Cmd.none )
 
         ClickEntryItem entry ->
-            ( { model | entryItems = model.entryItems |> statusMap ( List.map (equalOr entry) ) }, Cmd.none )
+            ( { model | entryItems = model.entryItems |> statusMap (List.map (equalOr entry)) }, Cmd.none )
 
         EntryFormMsg (EntryForm.PostedEntry result) ->
             let
@@ -119,28 +133,35 @@ view model =
         [ CDN.stylesheet
         , div []
             [ h1 [] [ text "第一回チキチキおしゃれコード選手権" ]
-            , EntryForm.viewEntryForm model.newEntry |> Html.map EntryFormMsg
+            , EntryForm.view model.newEntry |> Html.map EntryFormMsg
             , viewEntryItems model.entryItems
             ]
         ]
 
+
+viewEntryDescription : EntryItem -> List (Grid.Column msg)
 viewEntryDescription entryItem =
     case entryItem of
         Hide _ ->
             []
+
         Show entry ->
             [ Grid.col [ Col.md12 ] [ text entry.description ] ]
 
+
+viewEntryItem : EntryItem -> ListGroup.Item Msg
 viewEntryItem entryItem =
-    ListGroup.li [ ListGroup.attrs [onClick ( entryItem |> getEntry |> ClickEntryItem),  style "cursor" "pointer" ] ]
+    ListGroup.li [ ListGroup.attrs [ onClick (entryItem |> getEntry |> ClickEntryItem), style "cursor" "pointer" ] ]
         [ Grid.row []
             [ Grid.col [ Col.md4 ] [ entryItem |> getEntry |> .userName |> text ]
             , Grid.col [ Col.md4 ] [ entryItem |> getEntry |> .problem |> Entry.problemToString |> text ]
-            , Grid.col [ Col.md4 ] [ a [  entryItem |> getEntry |> .url |> href ] [ entryItem |> getEntry |> .url |> text ] ]
+            , Grid.col [ Col.md4 ] [ a [ entryItem |> getEntry |> .url |> href ] [ entryItem |> getEntry |> .url |> text ] ]
             ]
         , Grid.row [] (viewEntryDescription entryItem)
         ]
 
+
+viewEntryItems : Status (List EntryItem) -> Html Msg
 viewEntryItems model =
     case model of
         Failure error ->
@@ -159,6 +180,7 @@ viewEntryItems model =
                         |> ListGroup.ul
                     ]
                 ]
+
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =

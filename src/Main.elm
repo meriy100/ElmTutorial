@@ -3,6 +3,7 @@ module Main exposing (main)
 import Browser
 import Page.Entries
 
+
 main =
     Browser.element
         { init = Page.Entries.init

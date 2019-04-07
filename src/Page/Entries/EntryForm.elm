@@ -1,4 +1,4 @@
-module Page.Entries.EntryForm exposing (..)
+module Page.Entries.EntryForm exposing (Model, Msg(..), Status(..), initModel, postEntry, update, view)
 
 import Api.Endpoint as Endpoint
 import Bootstrap.Button as Button
@@ -19,9 +19,7 @@ type Status a
 
 
 type alias Model =
-    { entry: Status Entry
-    , errors: String }
-
+    Status Entry
 
 
 type Msg
@@ -33,9 +31,9 @@ type Msg
     | SubmitEntry
 
 
-initModel: Model
+initModel : Model
 initModel =
-    Model (Loaded Entry.init) ""
+    Loaded Entry.init
 
 
 postEntry : Entry -> Cmd Msg
@@ -53,11 +51,11 @@ postEntry entry =
         }
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Status Entry -> ( Model, Cmd Msg )
 update msg model =
     let
         newEntry =
-            case model.entry of
+            case model of
                 Loaded a ->
                     a
 
@@ -76,25 +74,25 @@ update msg model =
                 Err error ->
                     case error of
                         Http.BadBody message ->
-                            ( { model | entry = Failure message }, Cmd.none )
+                            ( Failure message, Cmd.none )
 
                         _ ->
-                            ( { model | entry = Failure "Error" }, Cmd.none )
+                            ( Failure "Error", Cmd.none )
 
         InputUserName userName ->
-            ( { model | entry = Loaded { newEntry | userName = userName } }, Cmd.none )
+            ( Loaded { newEntry | userName = userName }, Cmd.none )
 
         InputUrl url ->
-            ( { model | entry = Loaded { newEntry | url = url } }, Cmd.none )
+            ( Loaded { newEntry | url = url }, Cmd.none )
 
         InputDescription description ->
-            ( { model | entry = Loaded { newEntry | description = description } }, Cmd.none )
+            ( Loaded { newEntry | description = description }, Cmd.none )
 
         ChangeProblem problemId ->
-            ( { model | entry = Loaded { newEntry | problem = problemId |> String.toInt |> Maybe.withDefault 1 |> Entry.toProblem } }, Cmd.none )
+            ( Loaded { newEntry | problem = problemId |> String.toInt |> Maybe.withDefault 1 |> Entry.toProblem }, Cmd.none )
 
         SubmitEntry ->
-            case model.entry of
+            case model of
                 Loaded a ->
                     ( model, postEntry a )
 
@@ -105,9 +103,9 @@ update msg model =
                     ( model, Cmd.none )
 
 
-viewEntryForm : Model -> Html Msg
-viewEntryForm model =
-    case model.entry of
+view : Model -> Html Msg
+view model =
+    case model of
         Failure error ->
             div []
                 [ text error ]
