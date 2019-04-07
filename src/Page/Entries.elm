@@ -154,7 +154,7 @@ viewEntryItems model =
             Grid.row []
                 [ Grid.col [ Col.md12 ]
                     [ entryItems
-                        |> List.sortBy (\e -> e |> getEntry |> .timestamp)
+                        |> List.sortBy (\e -> e |> getEntry |> .timestamp |> Maybe.withDefault 0)
                         |> List.map viewEntryItem
                         |> ListGroup.ul
                     ]

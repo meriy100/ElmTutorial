@@ -19,7 +19,9 @@ type Status a
 
 
 type alias Model =
-    Status Entry
+    { entry: Status Entry
+    , errors: String }
+
 
 
 type Msg
@@ -31,8 +33,9 @@ type Msg
     | SubmitEntry
 
 
+initModel: Model
 initModel =
-    Loaded Entry.init
+    Model (Loaded Entry.init) ""
 
 
 postEntry : Entry -> Cmd Msg
@@ -50,11 +53,11 @@ postEntry entry =
         }
 
 
-update : Msg -> Status Entry -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let
         newEntry =
-            case model of
+            case model.entry of
                 Loaded a ->
                     a
 
@@ -73,25 +76,25 @@ update msg model =
                 Err error ->
                     case error of
                         Http.BadBody message ->
-                            ( Failure message, Cmd.none )
+                            ( { model | entry = Failure message }, Cmd.none )
 
                         _ ->
-                            ( Failure "Error", Cmd.none )
+                            ( { model | entry = Failure "Error" }, Cmd.none )
 
         InputUserName userName ->
-            ( Loaded { newEntry | userName = userName }, Cmd.none )
+            ( { model | entry = Loaded { newEntry | userName = userName } }, Cmd.none )
 
         InputUrl url ->
-            ( Loaded { newEntry | url = url }, Cmd.none )
+            ( { model | entry = Loaded { newEntry | url = url } }, Cmd.none )
 
         InputDescription description ->
-            ( Loaded { newEntry | description = description }, Cmd.none )
+            ( { model | entry = Loaded { newEntry | description = description } }, Cmd.none )
 
         ChangeProblem problemId ->
-            ( Loaded { newEntry | problem = problemId |> String.toInt |> Maybe.withDefault 1 |> Entry.toProblem }, Cmd.none )
+            ( { model | entry = Loaded { newEntry | problem = problemId |> String.toInt |> Maybe.withDefault 1 |> Entry.toProblem } }, Cmd.none )
 
         SubmitEntry ->
-            case model of
+            case model.entry of
                 Loaded a ->
                     ( model, postEntry a )
 
@@ -104,7 +107,7 @@ update msg model =
 
 viewEntryForm : Model -> Html Msg
 viewEntryForm model =
-    case model of
+    case model.entry of
         Failure error ->
             div []
                 [ text error ]

@@ -8,17 +8,17 @@ type Problem
     | Fib
 
 type alias Entry =
-    { track : String
+    { track : Maybe String
     , userName : String
     , url : String
     , description : String
     , problem : Problem
-    , timestamp : Int
+    , timestamp : Maybe Int
     }
 
 init : Entry
 init =
-    Entry "" "" "" "" FizzBuzz 1
+    Entry Nothing "" "" "" FizzBuzz Nothing
 
 listDecoder : Decoder (List Entry)
 listDecoder =
@@ -55,19 +55,18 @@ problemDecoder =
 decoder : Decoder Entry
 decoder =
     Decode.map6 Entry
-        (Decode.field "track" Decode.string)
+        (Decode.field "track" (Decode.maybe Decode.string))
         (Decode.field "user_name" Decode.string)
         (Decode.field "url" Decode.string)
         (Decode.field "description" Decode.string)
         (problemDecoder)
-        (Decode.field "timestamp" Decode.int)
+        (Decode.field "timestamp" (Decode.maybe Decode.int))
 
 
 encode : Entry -> Value
 encode entry =
     Encode.object
-        [ ( "track", Encode.string entry.track )
-        , ( "user_name", Encode.string entry.userName )
+        [  ( "user_name", Encode.string entry.userName )
         , ( "url", Encode.string entry.url )
         , ( "description", Encode.string entry.description )
         , ( "problem_id", Encode.int (entry.problem |> fromProblem) )
