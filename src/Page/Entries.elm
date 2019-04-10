@@ -145,6 +145,8 @@ view model =
         [ CDN.stylesheet
         , div []
             [ h1 [] [ text "第一回チキチキおしゃれコード選手権" ]
+            , div []
+                [ a [ href "https://startuptechnology.esa.io/posts/10111" ] [ text "概要"] ]
             , EntryForm.view model.newEntry |> Html.map EntryFormMsg
             , viewEntryItems model.entryItems
             ]
