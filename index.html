@@ -5961,14 +5961,14 @@ var author$project$Entry$Entry = F6(
 	function (track, userName, url, description, problem, timestamp) {
 		return {description: description, problem: problem, timestamp: timestamp, track: track, url: url, userName: userName};
 	});
-var author$project$Entry$Fib = {$: 'Fib'};
 var author$project$Entry$FizzBuzz = {$: 'FizzBuzz'};
+var author$project$Entry$GCD = {$: 'GCD'};
 var author$project$Entry$toProblem = function (n) {
 	switch (n) {
 		case 1:
 			return author$project$Entry$FizzBuzz;
 		case 2:
-			return author$project$Entry$Fib;
+			return author$project$Entry$GCD;
 		default:
 			return author$project$Entry$FizzBuzz;
 	}
@@ -6572,7 +6572,7 @@ var author$project$Entry$problemToString = function (problem) {
 	if (problem.$ === 'FizzBuzz') {
 		return 'FizzBuzz';
 	} else {
-		return 'フィボナッチ数';
+		return '最大公約数';
 	}
 };
 var author$project$Page$Entries$ClickEntryItem = function (a) {
@@ -8695,7 +8695,7 @@ var author$project$Page$Entries$EntryForm$view = function (model) {
 									]),
 								_List_fromArray(
 									[
-										elm$html$Html$text('フィボナッチ数')
+										elm$html$Html$text('最大公約数')
 									]))
 							]))
 					])),
@@ -8778,20 +8778,21 @@ var author$project$Page$Entries$EntryForm$view = function (model) {
 					]))
 			]));
 };
+var elm$html$Html$a = _VirtualDom_node('a');
 var elm$html$Html$h1 = _VirtualDom_node('h1');
 var elm$virtual_dom$VirtualDom$map = _VirtualDom_map;
 var elm$html$Html$map = elm$virtual_dom$VirtualDom$map;
-var elm$virtual_dom$VirtualDom$node = function (tag) {
-	return _VirtualDom_node(
-		_VirtualDom_noScript(tag));
-};
-var elm$html$Html$node = elm$virtual_dom$VirtualDom$node;
 var elm$html$Html$Attributes$href = function (url) {
 	return A2(
 		elm$html$Html$Attributes$stringProperty,
 		'href',
 		_VirtualDom_noJavaScriptUri(url));
 };
+var elm$virtual_dom$VirtualDom$node = function (tag) {
+	return _VirtualDom_node(
+		_VirtualDom_noScript(tag));
+};
+var elm$html$Html$node = elm$virtual_dom$VirtualDom$node;
 var elm$html$Html$Attributes$rel = _VirtualDom_attribute('rel');
 var rundis$elm_bootstrap$Bootstrap$CDN$stylesheet = A3(
 	elm$html$Html$node,
@@ -8832,6 +8833,22 @@ var author$project$Page$Entries$view = function (model) {
 						_List_fromArray(
 							[
 								elm$html$Html$text('第一回チキチキおしゃれコード選手権')
+							])),
+						A2(
+						elm$html$Html$div,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								elm$html$Html$a,
+								_List_fromArray(
+									[
+										elm$html$Html$Attributes$href('https://startuptechnology.esa.io/posts/10111')
+									]),
+								_List_fromArray(
+									[
+										elm$html$Html$text('概要')
+									]))
 							])),
 						A2(
 						elm$html$Html$map,
