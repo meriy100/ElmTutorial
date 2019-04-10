@@ -5,7 +5,7 @@ import Json.Encode as Encode exposing (Value)
 
 type Problem
     = FizzBuzz
-    | Fib
+    | GCD
 
 type alias Entry =
     { track : Maybe String
@@ -30,7 +30,7 @@ toProblem n =
         1 ->
             FizzBuzz
         2 ->
-            Fib
+            GCD
         _ ->
             FizzBuzz
 fromProblem : Problem -> Int
@@ -38,15 +38,15 @@ fromProblem problem =
     case problem of
         FizzBuzz ->
             1
-        Fib ->
+        GCD ->
             2
 problemToString : Problem -> String
 problemToString problem =
     case problem of
         FizzBuzz ->
             "FizzBuzz"
-        Fib ->
-            "フィボナッチ数"
+        GCD ->
+            "最大公約数"
 
 problemDecoder : Decoder Problem
 problemDecoder =

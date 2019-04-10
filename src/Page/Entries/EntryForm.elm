@@ -255,7 +255,7 @@ view model =
                 , Select.onChange ChangeProblem
                 ]
                 [ Select.item [ value "1" ] [ text "FizzBuzz" ]
-                , Select.item [ value "2" ] [ text "フィボナッチ数" ]
+                , Select.item [ value "2" ] [ text "最大公約数" ]
                 ]
             ]
         , Form.group []
