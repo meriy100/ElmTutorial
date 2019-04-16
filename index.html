@@ -6670,8 +6670,22 @@ var author$project$Page$Entries$viewEntryDescription = function (entryItem) {
 			]);
 	}
 };
+var elm$html$Html$a = _VirtualDom_node('a');
 var elm$html$Html$h5 = _VirtualDom_node('h5');
 var elm$html$Html$h6 = _VirtualDom_node('h6');
+var elm$html$Html$Attributes$stringProperty = F2(
+	function (key, string) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			elm$json$Json$Encode$string(string));
+	});
+var elm$html$Html$Attributes$href = function (url) {
+	return A2(
+		elm$html$Html$Attributes$stringProperty,
+		'href',
+		_VirtualDom_noJavaScriptUri(url));
+};
 var elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var elm$html$Html$Attributes$style = elm$virtual_dom$VirtualDom$style;
 var elm$virtual_dom$VirtualDom$Normal = function (a) {
@@ -6961,13 +6975,6 @@ var elm$core$Maybe$map = F2(
 		} else {
 			return elm$core$Maybe$Nothing;
 		}
-	});
-var elm$html$Html$Attributes$stringProperty = F2(
-	function (key, string) {
-		return A2(
-			_VirtualDom_property,
-			key,
-			elm$json$Json$Encode$string(string));
 	});
 var elm$html$Html$Attributes$class = elm$html$Html$Attributes$stringProperty('className');
 var rundis$elm_bootstrap$Bootstrap$General$Internal$screenSizeOption = function (size) {
@@ -7578,6 +7585,24 @@ var author$project$Page$Entries$viewEntryItem = function (entryItem) {
 										elm$html$Html$text(
 										author$project$Entry$problemToString(
 											author$project$Page$Entries$getEntry(entryItem).problem))
+									]))
+							])),
+						A2(
+						rundis$elm_bootstrap$Bootstrap$Grid$col,
+						_List_fromArray(
+							[rundis$elm_bootstrap$Bootstrap$Grid$Col$md4]),
+						_List_fromArray(
+							[
+								A2(
+								elm$html$Html$a,
+								_List_fromArray(
+									[
+										elm$html$Html$Attributes$href(
+										author$project$Page$Entries$getEntry(entryItem).url)
+									]),
+								_List_fromArray(
+									[
+										elm$html$Html$text('Gist')
 									]))
 							]))
 					])),
@@ -8778,16 +8803,9 @@ var author$project$Page$Entries$EntryForm$view = function (model) {
 					]))
 			]));
 };
-var elm$html$Html$a = _VirtualDom_node('a');
 var elm$html$Html$h1 = _VirtualDom_node('h1');
 var elm$virtual_dom$VirtualDom$map = _VirtualDom_map;
 var elm$html$Html$map = elm$virtual_dom$VirtualDom$map;
-var elm$html$Html$Attributes$href = function (url) {
-	return A2(
-		elm$html$Html$Attributes$stringProperty,
-		'href',
-		_VirtualDom_noJavaScriptUri(url));
-};
 var elm$virtual_dom$VirtualDom$node = function (tag) {
 	return _VirtualDom_node(
 		_VirtualDom_noScript(tag));

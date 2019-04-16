@@ -171,6 +171,7 @@ viewEntryItem entryItem =
                 [ h5 [] [ entryItem |> getEntry |> .userName |> text ] ]
             , Grid.col [ Col.md4 ]
                 [ h6 [] [ entryItem |> getEntry |> .problem |> Entry.problemToString |> text ] ]
+            , Grid.col [ Col.md4 ] [ a [ entryItem |> getEntry |> .url |> href ] [ text "Gist" ] ]
             ]
         , Grid.row [] (viewEntryDescription entryItem)
         ]
