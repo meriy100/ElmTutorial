@@ -11,6 +11,20 @@ type alias Model =
     }
 
 
+zero p x = x
+one p x = p x
+two p x =  x |> p |> p
+three p x =  x |> p |> p |> p
+five = plus three two
+increment n p x = p (n p x)
+plus n m = n increment m
+
+pair x y f = f x y
+left p = \x -> \y -> x
+right p = \x -> \y -> y
+
+to_integer lambda = lambda (\n -> n + 1) 0
+
 init : Model
 init =
     { content = "" }
@@ -32,8 +46,12 @@ view model =
     div []
         [ input [ placeholder "Text to reverse", value model.content, onInput Change ] []
         , div [] [ text (String.reverse model.content) ]
+        , span [] [ one |> to_integer |> String.fromInt |> text ]
+        , span [] [ two |> to_integer |> String.fromInt |> text ]
+        , span [] [ three |> to_integer |> String.fromInt |> text ]
+        , span [] [ three |> increment |> increment |> to_integer |> String.fromInt |> text ]
+        , span [] [ (plus five two) |> to_integer |> String.fromInt |> text ]
         ]
-
 
 main =
     Browser.sandbox { init = init, update = update, view = view }
